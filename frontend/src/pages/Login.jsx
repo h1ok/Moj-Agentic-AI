@@ -34,7 +34,20 @@ const Login = ({ onLogin }) => {
       const { access_token } = response.data
       localStorage.setItem('token', access_token)
       
-      onLogin({ email, name: email.split('@')[0] })
+      // جلب بيانات المستخدم الكاملة
+      const userResponse = await axios.get(`${API_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${access_token}`
+        }
+      })
+      
+      const userData = {
+        id: userResponse.data.id,
+        email: userResponse.data.email,
+        name: userResponse.data.email.split('@')[0]
+      }
+      
+      onLogin(userData)
       navigate('/chat')
     } catch (err) {
       if (err.response?.status === 401) {

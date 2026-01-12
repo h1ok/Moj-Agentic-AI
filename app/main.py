@@ -16,6 +16,7 @@ from app.services.webhook_service import WebhookService
 from app.core.config import settings
 from app.db.database import init_db
 from app.auth.routes import router as auth_router
+from app.api.intent_routes import router as intent_router
 
 app = FastAPI(title="كنق الاتمته - Chatbot API", version="1.0.0")
 
@@ -27,6 +28,9 @@ async def startup_event():
 
 # Include auth routes
 app.include_router(auth_router)
+
+# Include intent recognition routes
+app.include_router(intent_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -84,6 +88,7 @@ async def websocket_endpoint(websocket: WebSocket):
             user_message = message_data.get("message", "")
             session_id = message_data.get("session_id", None)
             user_id = message_data.get("user_id", None)
+            user_email = message_data.get("user_email", None)
             
             await manager.send_message({
                 "type": "user_message",
@@ -102,6 +107,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     user_message=user_message,
                     session_id=session_id,
                     user_id=user_id,
+                    user_email=user_email,
                     metadata={"source": "websocket"}
                 )
                 

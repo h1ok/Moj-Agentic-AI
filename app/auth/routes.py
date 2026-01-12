@@ -16,7 +16,7 @@ from app.auth.security import (
     Token,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from app.auth.middleware import get_current_user
+from app.auth.dependencies import require_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 security = HTTPBearer()
@@ -77,7 +77,7 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     
     # Create access token
     access_token = create_access_token(
-        data={"sub": new_user.id, "email": new_user.email},
+        data={"sub": str(new_user.id), "email": new_user.email},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     
@@ -106,7 +106,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     
     # Create access token
     access_token = create_access_token(
-        data={"sub": user.id, "email": user.email},
+        data={"sub": str(user.id), "email": user.email},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     
@@ -160,7 +160,7 @@ async def verify_token(
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_current_user)
 ):
     """تسجيل خروج - Logout user and invalidate token"""
     
@@ -181,7 +181,7 @@ async def logout(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
+async def get_current_user_info(current_user: User = Depends(require_current_user)):
     """Get current authenticated user info"""
     return UserResponse(
         id=current_user.id,

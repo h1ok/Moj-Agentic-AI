@@ -3,10 +3,13 @@ from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel
-import secrets
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # JWT Configuration
-SECRET_KEY = secrets.token_urlsafe(32)
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-here-change-in-production-min-32-chars")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
@@ -53,10 +56,16 @@ def decode_token(token: str) -> Optional[TokenData]:
     """Decode and validate JWT token"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
+        user_id_str: str = payload.get("sub")
         email: str = payload.get("email")
         
-        if user_id is None:
+        if user_id_str is None:
+            return None
+        
+        # Convert user_id from string to int
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
             return None
             
         return TokenData(user_id=user_id, email=email)

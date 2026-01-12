@@ -1,0 +1,347 @@
+{
+  "name": "Moj AI - Intent Recognition Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook - User Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "moj-ai-chat"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/intent/detect",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.body.message }}"
+            },
+            {
+              "name": "context",
+              "value": "={{ { user_id: $json.body.user_id, session_id: $json.body.session_id } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Intent Detection API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة نتيجة التعرف على النية\nconst intent = $input.item.json.intent;\nconst confidence = $input.item.json.confidence;\nconst platform = $input.item.json.platform;\nconst entities = $input.item.json.entities;\nconst suggestions = $input.item.json.suggestions;\n\n// التحقق من مستوى الثقة\nif (confidence < 0.7) {\n  return {\n    action: 'clarify',\n    message: 'عذراً، لم أفهم طلبك بشكل واضح. هل يمكنك إعادة الصياغة؟',\n    confidence: confidence,\n    suggestions: suggestions\n  };\n}\n\n// توجيه حسب النية\nreturn {\n  intent: intent,\n  confidence: confidence,\n  platform: platform,\n  entities: entities,\n  action: intent,\n  suggestions: suggestions\n};"
+      },
+      "name": "Process Intent",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.intent }}",
+                    "value2": "add_account"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "add_account"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.intent }}",
+                    "value2": "create_post"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "create_post"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.intent }}",
+                    "value2": "schedule_post"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "schedule_post"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.intent }}",
+                    "value2": "get_analytics"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "get_analytics"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.intent }}",
+                    "value2": "list_accounts"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "list_accounts"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.intent }}",
+                    "value2": "help"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "help"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة طلب إضافة حساب\nconst platform = $input.item.json.platform;\nconst entities = $input.item.json.entities;\n\nreturn {\n  message: `سأساعدك في إضافة حساب ${platform || 'جديد'}`,\n  next_step: 'request_credentials',\n  platform: platform,\n  instructions: [\n    'الرجاء تزويدي ببيانات الاعتماد',\n    'اسم المستخدم',\n    'كلمة المرور أو API Token'\n  ]\n};"
+      },
+      "name": "Add Account Flow",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة طلب إنشاء منشور\nconst platform = $input.item.json.platform;\nconst entities = $input.item.json.entities;\nconst content = entities.post_content;\n\nif (!content) {\n  return {\n    message: 'ما هو المحتوى الذي تريد نشره؟',\n    next_step: 'request_content',\n    platform: platform\n  };\n}\n\nif (!platform) {\n  return {\n    message: 'على أي منصة تريد النشر؟',\n    next_step: 'request_platform',\n    content: content,\n    options: ['Twitter', 'Instagram', 'Facebook', 'LinkedIn']\n  };\n}\n\nreturn {\n  message: `سأقوم بنشر المحتوى على ${platform}`,\n  next_step: 'confirm_post',\n  platform: platform,\n  content: content,\n  preview: {\n    platform: platform,\n    content: content,\n    status: 'ready_to_post'\n  }\n};"
+      },
+      "name": "Create Post Flow",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة طلب جدولة منشور\nconst platform = $input.item.json.platform;\nconst entities = $input.item.json.entities;\nconst content = entities.post_content;\nconst scheduleTime = entities.schedule_time;\n\nif (!content) {\n  return {\n    message: 'ما هو المحتوى الذي تريد جدولته؟',\n    next_step: 'request_content'\n  };\n}\n\nif (!scheduleTime) {\n  return {\n    message: 'متى تريد نشر هذا المحتوى؟',\n    next_step: 'request_schedule_time',\n    content: content,\n    suggestions: ['غداً الساعة 10 صباحاً', 'بعد ساعتين', 'الأحد القادم']\n  };\n}\n\nreturn {\n  message: `تم جدولة المنشور على ${platform || 'المنصة المحددة'}`,\n  next_step: 'schedule_confirmed',\n  platform: platform,\n  content: content,\n  schedule_time: scheduleTime,\n  status: 'scheduled'\n};"
+      },
+      "name": "Schedule Post Flow",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة طلب التحليلات\nconst platform = $input.item.json.platform;\n\nreturn {\n  message: `سأعرض لك تحليلات حسابك على ${platform || 'جميع المنصات'}`,\n  next_step: 'fetch_analytics',\n  platform: platform,\n  metrics: [\n    'عدد المتابعين',\n    'معدل التفاعل',\n    'أفضل المنشورات',\n    'النمو الشهري'\n  ]\n};"
+      },
+      "name": "Analytics Flow",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة طلب قائمة الحسابات\nreturn {\n  message: 'هذه هي حساباتك المرتبطة:',\n  next_step: 'display_accounts',\n  accounts: [\n    { platform: 'Twitter', username: '@user1', status: 'active' },\n    { platform: 'Instagram', username: '@user2', status: 'active' },\n    { platform: 'Facebook', username: 'User Name', status: 'active' }\n  ]\n};"
+      },
+      "name": "List Accounts Flow",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "functionCode": "// معالجة طلب المساعدة\nconst suggestions = $input.item.json.suggestions;\n\nreturn {\n  message: 'مرحباً! أنا موج AI، مساعدك الذكي لإدارة وسائل التواصل الاجتماعي.',\n  help_topics: [\n    '📱 إدارة الحسابات: إضافة، حذف، عرض حساباتك',\n    '✍️ إدارة المحتوى: نشر، جدولة، تعديل المنشورات',\n    '📊 التحليلات: عرض الإحصائيات والتفاعل',\n    '🤖 الأتمتة: جدولة تلقائية ومهام متكررة'\n  ],\n  examples: [\n    'أضف حساب تويتر',\n    'انشر منشور على انستقرام',\n    'أرني إحصائيات حسابي',\n    'جدول منشور غداً'\n  ],\n  suggestions: suggestions\n};"
+      },
+      "name": "Help Flow",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - User Input": {
+      "main": [
+        [
+          {
+            "node": "Intent Detection API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Detection API": {
+      "main": [
+        [
+          {
+            "node": "Process Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Intent": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Add Account Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Post Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Schedule Post Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analytics Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "List Accounts Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Help Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Account Flow": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Post Flow": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Post Flow": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analytics Flow": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Accounts Flow": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Help Flow": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -101,7 +101,20 @@ const ChatInterface = ({ darkMode, setDarkMode, user, onLogout }) => {
     setMessages(prev => [...prev, newMessage])
     
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ message: inputValue }))
+      // إرسال الرسالة مع user_id و user_email و session_id
+      const messageData = {
+        message: inputValue,
+        user_id: user?.id || null,
+        user_email: user?.email || null,
+        session_id: localStorage.getItem('session_id') || `session_${Date.now()}`
+      }
+      
+      // حفظ session_id إذا لم يكن موجوداً
+      if (!localStorage.getItem('session_id')) {
+        localStorage.setItem('session_id', messageData.session_id)
+      }
+      
+      ws.send(JSON.stringify(messageData))
     }
 
     setInputValue('')

@@ -56,10 +56,20 @@ const Register = ({ onRegister }) => {
       const { access_token } = response.data
       localStorage.setItem('token', access_token)
       
-      onRegister({ 
-        email: formData.email, 
-        name: formData.name 
+      // جلب بيانات المستخدم الكاملة
+      const userResponse = await axios.get(`${API_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${access_token}`
+        }
       })
+      
+      const userData = {
+        id: userResponse.data.id,
+        email: userResponse.data.email,
+        name: formData.name
+      }
+      
+      onRegister(userData)
       navigate('/chat')
     } catch (err) {
       if (err.response?.status === 400) {

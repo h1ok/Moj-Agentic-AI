@@ -17,6 +17,7 @@ class WebhookService:
         user_message: str,
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
+        user_email: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
@@ -26,6 +27,7 @@ class WebhookService:
             user_message: الرسالة التي أرسلها المستخدم
             session_id: معرف الجلسة (اختياري)
             user_id: معرف المستخدم (اختياري)
+            user_email: بريد المستخدم (اختياري)
             metadata: بيانات إضافية (اختياري)
         
         Returns:
@@ -49,6 +51,9 @@ class WebhookService:
             
             if user_id:
                 payload["user_id"] = user_id
+            
+            if user_email:
+                payload["user_email"] = user_email
             
             if metadata:
                 payload["metadata"] = metadata
