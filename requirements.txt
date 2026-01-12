@@ -19,8 +19,9 @@ starlette==0.50.0            # ASGI framework (FastAPI dependency - updated)
 # ============================================================================
 psycopg2-binary==2.9.9       # PostgreSQL adapter for Python
 pymongo==4.6.1               # MongoDB driver for Python
-redis==5.0.1                 # Redis client library
-sqlalchemy==2.0.25           # SQL toolkit and ORM (for PostgreSQL)
+redis==7.1.0                 # Redis client library (updated)
+sqlalchemy==2.0.45           # SQL toolkit and ORM (updated)
+alembic==1.18.0              # Database migration tool
 motor==3.3.2                 # Async MongoDB driver (works with pymongo)
 hiredis==2.2.3               # Fast Redis client (C extension)
 
@@ -110,8 +111,10 @@ vine==5.1.0                  # Promises and promises-like objects (Celery depend
 # ============================================================================
 python-jose[cryptography]==3.3.0  # JWT implementation (with crypto backend)
 passlib[bcrypt]==1.7.4       # Password hashing library (with bcrypt support)
-bcrypt==4.1.2                # Bcrypt password hashing
-cryptography==41.0.7         # Cryptographic recipes and primitives
+bcrypt==5.0.0                # Bcrypt password hashing (updated)
+cryptography==46.0.3         # Cryptographic recipes and primitives (updated)
+email-validator==2.3.0       # Email validation for Pydantic
+dnspython==2.8.0             # DNS toolkit (required by email-validator)
 # Note: python-multipart is already included in WEB FRAMEWORKS section
 
 # ============================================================================

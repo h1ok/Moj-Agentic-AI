@@ -1,6 +1,7 @@
 {
   "name": "moj-ai-frontend",
   "version": "1.0.0",
+  "type": "module",
   "description": "موج AI - React Frontend",
   "private": true,
   "scripts": {

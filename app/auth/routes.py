@@ -110,8 +110,12 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     
-    # Store session in Redis
-    RedisClient.set_session(access_token[:32], user.id)
+    # Store session in Redis (optional - won't block if Redis is unavailable)
+    try:
+        RedisClient.set_session(access_token[:32], user.id)
+    except Exception as e:
+        # Redis is optional, continue without it
+        pass
     
     return Token(access_token=access_token)
 
@@ -125,9 +129,13 @@ async def verify_token(
     
     token = credentials.credentials
     
-    # Check if token is blacklisted
-    if RedisClient.is_blacklisted(token):
-        return VerifyResponse(valid=False)
+    # Check if token is blacklisted (optional - skip if Redis unavailable)
+    try:
+        if RedisClient.is_blacklisted(token):
+            return VerifyResponse(valid=False)
+    except Exception:
+        # Redis is optional, continue without it
+        pass
     
     # Decode token
     token_data = decode_token(token)
@@ -158,11 +166,13 @@ async def logout(
     
     token = credentials.credentials
     
-    # Add token to blacklist
-    RedisClient.add_to_blacklist(token)
-    
-    # Delete session from Redis
-    RedisClient.delete_session(token[:32])
+    # Add token to blacklist (optional - skip if Redis unavailable)
+    try:
+        RedisClient.add_to_blacklist(token)
+        RedisClient.delete_session(token[:32])
+    except Exception:
+        # Redis is optional, continue without it
+        pass
     
     return MessageResponse(
         message="Successfully logged out",

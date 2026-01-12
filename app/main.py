@@ -85,14 +85,6 @@ async def websocket_endpoint(websocket: WebSocket):
             session_id = message_data.get("session_id", None)
             user_id = message_data.get("user_id", None)
             
-            # إرسال رسالة المستخدم إلى n8n webhook
-            await webhook_service.send_message_to_n8n(
-                user_message=user_message,
-                session_id=session_id,
-                user_id=user_id,
-                metadata={"source": "websocket"}
-            )
-            
             await manager.send_message({
                 "type": "user_message",
                 "message": user_message,
@@ -105,18 +97,33 @@ async def websocket_endpoint(websocket: WebSocket):
             }, websocket)
             
             try:
-                ai_response = await ai_service.get_response(user_message)
+                # الحصول على الرد من n8n webhook فقط
+                n8n_response = await webhook_service.send_message_to_n8n(
+                    user_message=user_message,
+                    session_id=session_id,
+                    user_id=user_id,
+                    metadata={"source": "websocket"}
+                )
                 
                 await manager.send_message({
                     "type": "typing",
                     "status": False
                 }, websocket)
                 
-                await manager.send_message({
-                    "type": "assistant_message",
-                    "message": ai_response,
-                    "timestamp": datetime.now().isoformat()
-                }, websocket)
+                # إذا كان هناك رد من n8n، أرسله
+                if n8n_response:
+                    await manager.send_message({
+                        "type": "assistant_message",
+                        "message": n8n_response,
+                        "timestamp": datetime.now().isoformat()
+                    }, websocket)
+                else:
+                    # إذا لم يكن هناك رد من n8n، أرسل رسالة خطأ
+                    await manager.send_message({
+                        "type": "error",
+                        "message": "عذراً، لم أتمكن من الحصول على رد من النظام. يرجى المحاولة مرة أخرى.",
+                        "timestamp": datetime.now().isoformat()
+                    }, websocket)
             except Exception as e:
                 await manager.send_message({
                     "type": "typing",
@@ -134,24 +141,25 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post("/api/send-message")
 async def send_message_to_n8n(request: MessageRequest):
     """
-    Endpoint POST لإرسال رسالة إلى n8n webhook
+    Endpoint POST لإرسال رسالة إلى n8n webhook واستقبال الرد
     
-    يمكن استخدام هذا الـ endpoint لإرسال رسائل مباشرة إلى n8n
+    يمكن استخدام هذا الـ endpoint لإرسال رسائل مباشرة إلى n8n والحصول على الرد
     """
     try:
-        success = await webhook_service.send_message_to_n8n(
+        n8n_response = await webhook_service.send_message_to_n8n(
             user_message=request.message,
             session_id=request.session_id,
             user_id=request.user_id,
             metadata=request.metadata
         )
         
-        if success:
+        if n8n_response:
             return JSONResponse(
                 status_code=200,
                 content={
                     "status": "success",
                     "message": "تم إرسال الرسالة إلى n8n بنجاح",
+                    "response": n8n_response,
                     "timestamp": datetime.now().isoformat()
                 }
             )
@@ -160,7 +168,7 @@ async def send_message_to_n8n(request: MessageRequest):
                 status_code=503,
                 content={
                     "status": "error",
-                    "message": "فشل إرسال الرسالة إلى n8n (قد يكون webhook معطّل أو غير متاح)",
+                    "message": "فشل الحصول على رد من n8n. يرجى التحقق من أن n8n webhook يعمل بشكل صحيح.",
                     "timestamp": datetime.now().isoformat()
                 }
             )
