@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi'
 import { MdOutlineWavingHand } from 'react-icons/md'
 import axios from 'axios'
+import logoLight from '../assets/logos/logo-light.png'
+import logoDark from '../assets/logos/logo-dark.png'
 
-const API_URL = 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate()
@@ -13,6 +15,12 @@ const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [darkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark')
+    }
+    return false
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -44,7 +52,10 @@ const Login = ({ onLogin }) => {
       const userData = {
         id: userResponse.data.id,
         email: userResponse.data.email,
-        name: userResponse.data.email.split('@')[0]
+        name: userResponse.data.name || userResponse.data.email.split('@')[0],
+        profile_picture: userResponse.data.profile_picture,
+        is_admin: userResponse.data.is_admin || false,
+        is_active: userResponse.data.is_active || true
       }
       
       onLogin(userData)
@@ -61,34 +72,38 @@ const Login = ({ onLogin }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background-light via-white to-blue-50 dark:from-background-dark dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background-light dark:bg-navy-dark flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-navy-light/5 dark:bg-navy-light/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-primary/3 to-navy-medium/3 dark:from-primary/5 dark:to-navy-medium/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo & Welcome */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-2xl mb-4 shadow-lg">
-            <span className="text-3xl font-bold text-white">م</span>
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-6">
+            <img 
+              src={logoDark} 
+              alt="MOJ AI Logo" 
+              className="h-20 w-auto object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center justify-center gap-2">
-            مرحباً بك في موج AI
-            <MdOutlineWavingHand className="text-yellow-500 animate-bounce" />
+          <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 flex items-center justify-center gap-2">
+            مرحباً بك في MOJ AI
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-text-secondary-light dark:text-text-secondary-dark text-base">
             نظام إدارة وسائل التواصل الاجتماعي بالذكاء الاصطناعي
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-8">
+        <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark p-8 backdrop-blur-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">
                 البريد الإلكتروني
               </label>
               <div className="relative">
@@ -99,7 +114,7 @@ const Login = ({ onLogin }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pr-10 pl-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                  className="w-full pr-10 pl-4 py-3 bg-accent-light dark:bg-navy-medium border border-border-light dark:border-border-dark rounded-xl text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                   placeholder="example@email.com"
                   dir="ltr"
                 />
@@ -108,7 +123,7 @@ const Login = ({ onLogin }) => {
 
             {/* Password Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">
                 كلمة المرور
               </label>
               <div className="relative">
@@ -119,14 +134,14 @@ const Login = ({ onLogin }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pr-10 pl-12 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                  className="w-full pr-10 pl-12 py-3 bg-accent-light dark:bg-navy-medium border border-border-light dark:border-border-dark rounded-xl text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                   placeholder="••••••••"
                   dir="ltr"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
                 >
                   {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                 </button>
@@ -138,11 +153,11 @@ const Login = ({ onLogin }) => {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2 dark:bg-gray-800 dark:border-gray-700"
+                  className="w-4 h-4 text-primary bg-accent-light border-border-light rounded focus:ring-primary focus:ring-2 dark:bg-navy-medium dark:border-border-dark"
                 />
-                <span className="text-gray-600 dark:text-gray-400">تذكرني</span>
+                <span className="text-text-secondary-light dark:text-text-secondary-dark">تذكرني</span>
               </label>
-              <Link to="#" className="text-primary hover:text-blue-600 font-medium">
+              <Link to="#" className="text-primary hover:text-secondary font-medium">
                 نسيت كلمة المرور؟
               </Link>
             </div>
@@ -158,7 +173,7 @@ const Login = ({ onLogin }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+              className="w-full bg-primary hover:bg-secondary text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -175,16 +190,16 @@ const Login = ({ onLogin }) => {
           </form>
 
           {/* Sign Up Link */}
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
+          <p className="text-center text-sm text-text-secondary-light dark:text-text-secondary-dark mt-6">
             ليس لديك حساب؟{' '}
-            <Link to="/register" className="text-primary hover:text-blue-600 font-semibold">
+            <Link to="/register" className="text-primary hover:text-secondary font-semibold">
               إنشاء حساب جديد
             </Link>
           </p>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-500 dark:text-gray-500 mt-6">
+        <p className="text-center text-xs text-text-secondary-light dark:text-text-secondary-dark mt-6">
           بتسجيل الدخول، أنت توافق على{' '}
           <a href="#" className="text-primary hover:underline">شروط الخدمة</a>
           {' '}و{' '}

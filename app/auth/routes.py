@@ -36,6 +36,10 @@ class RegisterRequest(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: str
+    name: Optional[str] = None
+    profile_picture: Optional[str] = None
+    is_admin: bool = False
+    is_active: bool = True
     created_at: str
     
     class Config:
@@ -50,6 +54,20 @@ class VerifyResponse(BaseModel):
 class MessageResponse(BaseModel):
     message: str
     success: bool
+
+
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class UploadProfilePictureRequest(BaseModel):
+    profile_picture: str
 
 
 @router.post("/register", response_model=Token)
@@ -186,5 +204,119 @@ async def get_current_user_info(current_user: User = Depends(require_current_use
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
+        name=current_user.name,
+        profile_picture=current_user.profile_picture,
+        is_admin=current_user.is_admin,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at.isoformat()
+    )
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    request: UpdateProfileRequest,
+    current_user: User = Depends(require_current_user),
+    db: Session = Depends(get_db)
+):
+    """تحديث البروفايل - Update user profile"""
+    
+    # Update name if provided
+    if request.name is not None:
+        current_user.name = request.name
+    
+    # Update email if provided and not already taken
+    if request.email is not None and request.email != current_user.email:
+        existing_user = db.query(User).filter(User.email == request.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use"
+            )
+        current_user.email = request.email
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        profile_picture=current_user.profile_picture,
+        is_admin=current_user.is_admin,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at.isoformat()
+    )
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(require_current_user),
+    db: Session = Depends(get_db)
+):
+    """تغيير كلمة المرور - Change user password"""
+    
+    try:
+        print(f"[DEBUG] Change password request for user: {current_user.email}")
+        print(f"[DEBUG] Current password provided: {request.current_password[:3]}***")
+        print(f"[DEBUG] New password provided: {request.new_password[:3]}***")
+        
+        # Verify current password
+        password_match = verify_password(request.current_password, current_user.password_hash)
+        print(f"[DEBUG] Password verification result: {password_match}")
+        
+        if not password_match:
+            print(f"[ERROR] Current password is incorrect for user: {current_user.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect"
+            )
+        
+        # Hash new password
+        new_hash = hash_password(request.new_password)
+        print(f"[DEBUG] New password hash generated: {new_hash[:20]}...")
+        
+        # Update password
+        current_user.password_hash = new_hash
+        db.commit()
+        db.refresh(current_user)
+        
+        print(f"[SUCCESS] Password changed successfully for user: {current_user.email}")
+        
+        return MessageResponse(
+            message="Password changed successfully",
+            success=True
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in change_password: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to change password: {str(e)}"
+        )
+
+
+@router.post("/profile-picture", response_model=UserResponse)
+async def upload_profile_picture(
+    request: UploadProfilePictureRequest,
+    current_user: User = Depends(require_current_user),
+    db: Session = Depends(get_db)
+):
+    """رفع صورة البروفايل - Upload profile picture (base64 or URL)"""
+    
+    current_user.profile_picture = request.profile_picture
+    db.commit()
+    db.refresh(current_user)
+    
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        profile_picture=current_user.profile_picture,
+        is_admin=current_user.is_admin,
+        is_active=current_user.is_active,
         created_at=current_user.created_at.isoformat()
     )

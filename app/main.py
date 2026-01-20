@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import uvicorn
 import json
+import os
 from datetime import datetime
 from typing import List
 import asyncio
@@ -17,6 +18,7 @@ from app.core.config import settings
 from app.db.database import init_db
 from app.auth.routes import router as auth_router
 from app.api.intent_routes import router as intent_router
+from app.api.admin_routes import router as admin_router
 
 app = FastAPI(title="كنق الاتمته - Chatbot API", version="1.0.0")
 
@@ -32,12 +34,18 @@ app.include_router(auth_router)
 # Include intent recognition routes
 app.include_router(intent_router)
 
+# Include admin routes
+app.include_router(admin_router)
+
+# CORS Configuration - restrict to specific origins in production
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 static_path = Path(__file__).parent.parent / "static"

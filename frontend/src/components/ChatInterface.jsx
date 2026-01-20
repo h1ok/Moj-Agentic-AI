@@ -6,8 +6,11 @@ import { BsListUl, BsFileText } from 'react-icons/bs'
 import Sidebar from './Sidebar'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
+import logoLight from '../assets/logos/logo-light.png'
+import logoDark from '../assets/logos/logo-dark.png'
 
 const ChatInterface = ({ darkMode, setDarkMode, user, onLogout }) => {
+  const logo = darkMode ? logoLight : logoDark
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -135,32 +138,39 @@ const ChatInterface = ({ darkMode, setDarkMode, user, onLogout }) => {
     <div className="flex h-screen w-full overflow-hidden">
       <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} user={user} onLogout={onLogout} />
       
-      <main className="flex-1 flex flex-col h-full bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-background-dark dark:to-gray-900 relative">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b-2 border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 bg-white/90 dark:bg-background-dark/90 backdrop-blur-lg shadow-sm z-10">
-          <div className="flex items-center gap-3 text-gray-900 dark:text-white">
-            <h2 className="text-lg font-bold">MOJ AI</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => {}}
-              className="flex items-center justify-center rounded-lg size-9 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
-              title="مشاركة المحادثة"
-            >
-              <FiShare2 size={20} />
-            </button>
-            <button 
-              onClick={handleNewChat}
-              className="flex items-center justify-center rounded-lg size-9 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
-              title="محادثة جديدة"
-            >
-              <FiPlus size={20} />
-            </button>
-            <button className="flex items-center justify-center rounded-lg size-9 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors md:hidden">
-              <FiMenu size={20} />
-            </button>
-          </div>
-        </header>
+      {/* فاصل عمودي بين Sidebar والمحتوى */}
+      <div className="w-px bg-border-light dark:bg-border-dark"></div>
+      
+      <main className="flex-1 flex flex-col h-full bg-background-light dark:bg-background-dark relative">
+        <div className="flex flex-col">
+          {/* Header */}
+          <header className="flex items-center justify-between px-6 py-4 shrink-0 bg-card-light dark:bg-sidebar-dark z-10">
+            <div className="flex items-center gap-3 text-text-primary-light dark:text-text-primary-dark">
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {}}
+                className="flex items-center justify-center rounded-lg size-9 hover:bg-gray-50 dark:hover:bg-card-dark text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                title="مشاركة المحادثة"
+              >
+                <FiShare2 size={18} />
+              </button>
+              <button 
+                onClick={handleNewChat}
+                className="flex items-center justify-center rounded-lg size-9 hover:bg-gray-50 dark:hover:bg-card-dark text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                title="محادثة جديدة"
+              >
+                <FiPlus size={18} />
+              </button>
+              <button className="flex items-center justify-center rounded-lg size-9 hover:bg-gray-50 dark:hover:bg-card-dark text-text-secondary-light dark:text-text-secondary-dark transition-colors md:hidden">
+                <FiMenu size={18} />
+              </button>
+            </div>
+          </header>
+
+          {/* فاصل أفقي تحت Header - يمتد بعرض كامل */}
+          <div className="h-px bg-border-light dark:bg-border-dark w-full"></div>
+        </div>
 
         {/* Messages */}
         <MessageList 
