@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="grid">
+    <div class="card" style="grid-column: span 7">
+      <h3>إعادة النشر (Repost)</h3>
+      <form method="POST" class="form">
+        <div class="field">
+          <label>الحساب (Cookie)</label>
+          <select name="cookie_label" required>
+            <option value="">-- اختر --</option>
+            {% for c in cookies %}
+              <option value="{{ c.label }}">{{ c.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>رابط التغريدة</label>
+          <input class="input" type="url" name="tweet_url" required placeholder="https://x.com/.../status/..." />
+        </div>
+        <div class="field half">
+          <label>Headless</label>
+          <select name="headless">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+        <div class="field half">
+          <label>ملاحظة</label>
+          <div class="hint">بعد الضغط سيتم الانتظار 5 ثواني ثم إغلاق المتصفح.</div>
+        </div>
+        <div class="field">
+          <button class="btn primary" type="submit">تنفيذ إعادة النشر</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" style="grid-column: span 5">
+      <h3>API سريع</h3>
+      <div class="hint">Endpoint: <code>POST /api/repost</code> (Bearer Token)</div>
+      <pre style="white-space:pre-wrap;background:#fff;border:1px solid var(--border);padding:12px;border-radius:12px;font-size:12px;overflow:auto">
+curl -X POST http://localhost:5789/api/repost \
+  -H "Authorization: Bearer your-secure-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{"cookie_label":"acc1","tweet_url":"https://x.com/.../status/...","headless":true,"wait_after_ms":5000}'
+      </pre>
+    </div>
+  </div>
+{% endblock %}

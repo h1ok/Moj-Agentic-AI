@@ -23,6 +23,7 @@ from modules.utils import download_to_temp, is_url, safe_label
 from modules.x_login import TwitterLoginAdvanced
 from modules.x_post import post_to_x
 from modules.x_profile import update_profile_on_x
+from modules.x_actions import like_tweet, repost_tweet, reply_to_tweet
 
 load_dotenv()
 
@@ -31,7 +32,7 @@ COOKIES_DIR = BASE_DIR / 'cookies'
 COOKIES_DIR.mkdir(exist_ok=True)
 
 ADMIN_USER = os.getenv('XSUITE_ADMIN_USER', 'admin')
-ADMIN_PASS = os.getenv('XSUITE_ADMIN_PASS', 'Mm112233@@')
+ADMIN_PASS = os.getenv('XSUITE_ADMIN_PASS', 'admin')
 DEFAULT_HEADLESS = os.getenv('XSUITE_DEFAULT_HEADLESS', '0') == '1'
 
 app = Flask(__name__)
@@ -263,6 +264,103 @@ def profile_page():
     return redirect(url_for('profile_page'))
 
 
+@app.route('/repost', methods=['GET', 'POST'])
+@login_required
+def repost_page():
+    cookies = list_cookies()
+    if request.method == 'GET':
+        return render_template('repost.html', title='إعادة النشر', header='إعادة النشر', subtitle='اختر حساب ثم ضع رابط التغريدة', active='repost', cookies=cookies)
+
+    cookie_label = (request.form.get('cookie_label') or '').strip()
+    tweet_url = (request.form.get('tweet_url') or '').strip()
+    headless = (request.form.get('headless') == '1')
+
+    if not cookie_label or not tweet_url:
+        flash('اختر حساب + ضع رابط التغريدة', 'error')
+        return redirect(url_for('repost_page'))
+
+    c = get_cookie_by_label(cookie_label)
+    if not c:
+        flash('هذا الحساب غير موجود', 'error')
+        return redirect(url_for('repost_page'))
+
+    storage_state_path = str(COOKIES_DIR / c['filename'])
+    try:
+        repost_tweet(storage_state_path=storage_state_path, tweet_url=tweet_url, headless=headless, wait_after_ms=5000)
+        log_operation('repost', cookie_label, 'success', 'تمت محاولة إعادة النشر ✅', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+        flash('تمت محاولة إعادة النشر ✅', 'success')
+    except Exception as e:
+        log_operation('repost', cookie_label, 'error', f'فشل إعادة النشر: {e}', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+        flash(f'فشل إعادة النشر: {e}', 'error')
+
+    return redirect(url_for('repost_page'))
+
+
+@app.route('/like', methods=['GET', 'POST'])
+@login_required
+def like_page():
+    cookies = list_cookies()
+    if request.method == 'GET':
+        return render_template('like.html', title='إعجاب', header='إعجاب', subtitle='اختر حساب ثم ضع رابط التغريدة', active='like', cookies=cookies)
+
+    cookie_label = (request.form.get('cookie_label') or '').strip()
+    tweet_url = (request.form.get('tweet_url') or '').strip()
+    headless = (request.form.get('headless') == '1')
+
+    if not cookie_label or not tweet_url:
+        flash('اختر حساب + ضع رابط التغريدة', 'error')
+        return redirect(url_for('like_page'))
+
+    c = get_cookie_by_label(cookie_label)
+    if not c:
+        flash('هذا الحساب غير موجود', 'error')
+        return redirect(url_for('like_page'))
+
+    storage_state_path = str(COOKIES_DIR / c['filename'])
+    try:
+        like_tweet(storage_state_path=storage_state_path, tweet_url=tweet_url, headless=headless, wait_after_ms=2000)
+        log_operation('like', cookie_label, 'success', 'تمت محاولة الإعجاب ✅', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+        flash('تمت محاولة الإعجاب ✅', 'success')
+    except Exception as e:
+        log_operation('like', cookie_label, 'error', f'فشل الإعجاب: {e}', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+        flash(f'فشل الإعجاب: {e}', 'error')
+
+    return redirect(url_for('like_page'))
+
+
+@app.route('/reply', methods=['GET', 'POST'])
+@login_required
+def reply_page():
+    cookies = list_cookies()
+    if request.method == 'GET':
+        return render_template('reply.html', title='رد', header='رد', subtitle='اختر حساب ثم ضع رابط التغريدة ونص الرد', active='reply', cookies=cookies)
+
+    cookie_label = (request.form.get('cookie_label') or '').strip()
+    tweet_url = (request.form.get('tweet_url') or '').strip()
+    reply_text = (request.form.get('reply_text') or '').strip()
+    headless = (request.form.get('headless') == '1')
+
+    if not cookie_label or not tweet_url or not reply_text:
+        flash('اختر حساب + ضع رابط التغريدة + اكتب الرد', 'error')
+        return redirect(url_for('reply_page'))
+
+    c = get_cookie_by_label(cookie_label)
+    if not c:
+        flash('هذا الحساب غير موجود', 'error')
+        return redirect(url_for('reply_page'))
+
+    storage_state_path = str(COOKIES_DIR / c['filename'])
+    try:
+        reply_to_tweet(storage_state_path=storage_state_path, tweet_url=tweet_url, reply_text=reply_text, headless=headless, wait_after_ms=5000)
+        log_operation('reply', cookie_label, 'success', 'تمت محاولة الرد ✅', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+        flash('تمت محاولة الرد ✅', 'success')
+    except Exception as e:
+        log_operation('reply', cookie_label, 'error', f'فشل الرد: {e}', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+        flash(f'فشل الرد: {e}', 'error')
+
+    return redirect(url_for('reply_page'))
+
+
 @app.route('/logs')
 @login_required
 def logs_page():
@@ -409,21 +507,35 @@ def api_post():
 @app.route('/api/profile/update', methods=['POST'])
 @require_api_token
 def api_profile_update():
-    cookie_label = (request.form.get('cookie_label') or '').strip()
+    # يدعم multipart (files/form) أو JSON
+    if request.is_json:
+        data = request.get_json(force=True, silent=True) or {}
+        cookie_label = (data.get('cookie_label') or '').strip()
+        name = (data.get('name') or '').strip()
+        bio = (data.get('bio') or '').strip()
+        location = (data.get('location') or '').strip()
+        website = (data.get('website') or '').strip()
+        headless = bool(data.get('headless', True))
+        avatar_url = (data.get('avatar_url') or '').strip()
+        banner_url = (data.get('banner_url') or '').strip()
+        avatar_file = None
+        banner_file = None
+    else:
+        cookie_label = (request.form.get('cookie_label') or '').strip()
+        name = (request.form.get('name') or '').strip()
+        bio = (request.form.get('bio') or '').strip()
+        location = (request.form.get('location') or '').strip()
+        website = (request.form.get('website') or '').strip()
+        headless = (request.form.get('headless') == '1')
+        avatar_url = (request.form.get('avatar_url') or '').strip()
+        banner_url = (request.form.get('banner_url') or '').strip()
+        avatar_file = request.files.get('avatar_file')
+        banner_file = request.files.get('banner_file')
     c = get_cookie_by_label(cookie_label)
     if not c:
         return jsonify({'success': False, 'error': 'cookie not found'}), 404
 
-    name = (request.form.get('name') or '').strip()
-    bio = (request.form.get('bio') or '').strip()
-    location = (request.form.get('location') or '').strip()
-    website = (request.form.get('website') or '').strip()
-    headless = (request.form.get('headless') == '1')
-
-    avatar_url = (request.form.get('avatar_url') or '').strip()
-    banner_url = (request.form.get('banner_url') or '').strip()
-    avatar_file = request.files.get('avatar_file')
-    banner_file = request.files.get('banner_file')
+    # (تم تعريف الحقول أعلاه حسب نوع الطلب)
 
     storage_state_path = str(COOKIES_DIR / c['filename'])
     op_id = log_operation('profile', cookie_label, 'pending', 'بدأت عملية تعديل البروفايل', meta_json=json.dumps({'headless': headless}))
@@ -459,6 +571,88 @@ def api_profile_update():
         except Exception as e:
             log_operation('profile', cookie_label, 'error', f'فشل تعديل البروفايل: {e}')
             return jsonify({'success': False, 'task_id': op_id, 'error': str(e)}), 500
+
+
+@app.route('/api/repost', methods=['POST'])
+@require_api_token
+def api_repost():
+    data = request.get_json(force=True, silent=True) or {}
+    cookie_label = (data.get('cookie_label') or '').strip()
+    tweet_url = (data.get('tweet_url') or '').strip()
+    headless = bool(data.get('headless', True))
+    wait_after_ms = int(data.get('wait_after_ms') or 5000)
+
+    if not cookie_label or not tweet_url:
+        return jsonify({'success': False, 'error': 'cookie_label and tweet_url required'}), 400
+
+    c = get_cookie_by_label(cookie_label)
+    if not c:
+        return jsonify({'success': False, 'error': 'cookie not found'}), 404
+
+    storage_state_path = str(COOKIES_DIR / c['filename'])
+    op_id = log_operation('repost', cookie_label, 'pending', 'بدأت عملية إعادة النشر', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+    try:
+        repost_tweet(storage_state_path=storage_state_path, tweet_url=tweet_url, headless=headless, wait_after_ms=wait_after_ms)
+        log_operation('repost', cookie_label, 'success', 'تمت محاولة إعادة النشر ✅')
+        return jsonify({'success': True, 'task_id': op_id, 'message': 'تمت محاولة إعادة النشر ✅'}), 200
+    except Exception as e:
+        log_operation('repost', cookie_label, 'error', f'فشل إعادة النشر: {e}')
+        return jsonify({'success': False, 'task_id': op_id, 'error': str(e)}), 500
+
+
+@app.route('/api/like', methods=['POST'])
+@require_api_token
+def api_like():
+    data = request.get_json(force=True, silent=True) or {}
+    cookie_label = (data.get('cookie_label') or '').strip()
+    tweet_url = (data.get('tweet_url') or '').strip()
+    headless = bool(data.get('headless', True))
+    wait_after_ms = int(data.get('wait_after_ms') or 2000)
+
+    if not cookie_label or not tweet_url:
+        return jsonify({'success': False, 'error': 'cookie_label and tweet_url required'}), 400
+
+    c = get_cookie_by_label(cookie_label)
+    if not c:
+        return jsonify({'success': False, 'error': 'cookie not found'}), 404
+
+    storage_state_path = str(COOKIES_DIR / c['filename'])
+    op_id = log_operation('like', cookie_label, 'pending', 'بدأت عملية الإعجاب', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+    try:
+        like_tweet(storage_state_path=storage_state_path, tweet_url=tweet_url, headless=headless, wait_after_ms=wait_after_ms)
+        log_operation('like', cookie_label, 'success', 'تمت محاولة الإعجاب ✅')
+        return jsonify({'success': True, 'task_id': op_id, 'message': 'تمت محاولة الإعجاب ✅'}), 200
+    except Exception as e:
+        log_operation('like', cookie_label, 'error', f'فشل الإعجاب: {e}')
+        return jsonify({'success': False, 'task_id': op_id, 'error': str(e)}), 500
+
+
+@app.route('/api/reply', methods=['POST'])
+@require_api_token
+def api_reply():
+    data = request.get_json(force=True, silent=True) or {}
+    cookie_label = (data.get('cookie_label') or '').strip()
+    tweet_url = (data.get('tweet_url') or '').strip()
+    reply_text = (data.get('reply_text') or '').strip()
+    headless = bool(data.get('headless', True))
+    wait_after_ms = int(data.get('wait_after_ms') or 5000)
+
+    if not cookie_label or not tweet_url or not reply_text:
+        return jsonify({'success': False, 'error': 'cookie_label, tweet_url, reply_text required'}), 400
+
+    c = get_cookie_by_label(cookie_label)
+    if not c:
+        return jsonify({'success': False, 'error': 'cookie not found'}), 404
+
+    storage_state_path = str(COOKIES_DIR / c['filename'])
+    op_id = log_operation('reply', cookie_label, 'pending', 'بدأت عملية الرد', meta_json=json.dumps({'headless': headless, 'tweet_url': tweet_url}))
+    try:
+        reply_to_tweet(storage_state_path=storage_state_path, tweet_url=tweet_url, reply_text=reply_text, headless=headless, wait_after_ms=wait_after_ms)
+        log_operation('reply', cookie_label, 'success', 'تمت محاولة الرد ✅')
+        return jsonify({'success': True, 'task_id': op_id, 'message': 'تمت محاولة الرد ✅'}), 200
+    except Exception as e:
+        log_operation('reply', cookie_label, 'error', f'فشل الرد: {e}')
+        return jsonify({'success': False, 'task_id': op_id, 'error': str(e)}), 500
 
 
 @app.route('/api/stats', methods=['GET'])

@@ -22,6 +22,9 @@
         <a href="{{ url_for('cookies_page') }}" class="{% if active=='cookies' %}active{% endif %}">الكوكيز (الحسابات) <span>🍪</span></a>
         <a href="{{ url_for('login_page') }}" class="{% if active=='login' %}active{% endif %}">تسجيل دخول وحفظ كوكيز <span>🔐</span></a>
         <a href="{{ url_for('post_page') }}" class="{% if active=='post' %}active{% endif %}">نشر منشور <span>📝</span></a>
+        <a href="{{ url_for('repost_page') }}" class="{% if active=='repost' %}active{% endif %}">إعادة النشر <span>🔁</span></a>
+        <a href="{{ url_for('like_page') }}" class="{% if active=='like' %}active{% endif %}">إعجاب <span>❤️</span></a>
+        <a href="{{ url_for('reply_page') }}" class="{% if active=='reply' %}active{% endif %}">رد <span>💬</span></a>
         <a href="{{ url_for('profile_page') }}" class="{% if active=='profile' %}active{% endif %}">تعديل بروفايل <span>🧩</span></a>
         <a href="{{ url_for('logs_page') }}" class="{% if active=='logs' %}active{% endif %}">سجل العمليات <span>🧾</span></a>
         <a href="{{ url_for('logout') }}">خروج <span>🚪</span></a>
